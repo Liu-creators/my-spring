@@ -9,7 +9,7 @@ public class BeanDefinition {
     /**
      * bean的类型
      */
-    private Class type;
+    private Class<?> type;
 
     /**
      * bean的作用域
@@ -21,11 +21,11 @@ public class BeanDefinition {
      */
     private boolean lazy;
 
-    public Class getType() {
+    public Class<?> getType() {
         return type;
     }
 
-    public void setType(Class type) {
+    public void setType(Class<?> type) {
         this.type = type;
     }
 

@@ -3,10 +3,13 @@ package org.example.spring.utils;
 import org.example.spring.BeanDefinition;
 import org.example.spring.annotation.Component;
 import org.example.spring.annotation.ComponentScan;
+import org.example.spring.annotation.Lazy;
+import org.example.spring.annotation.Scope;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * -03/29-10:51
@@ -30,6 +33,7 @@ public class ScanBeanUtils {
                 path = path.replace(".", "/");
 
                 URL resource = clazz.getClassLoader().getResource(path);
+                assert resource != null;
                 File file = new File(resource.getFile());
 
                 loopFor(file, configClass, beanDefinitionMap);
@@ -44,7 +48,7 @@ public class ScanBeanUtils {
      */
     private static <T> void loopFor(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap) throws ClassNotFoundException {
         if (file.isDirectory()) {
-            for (File listFile : file.listFiles()) {
+            for (File listFile : Objects.requireNonNull(file.listFiles())) {
                 if (listFile.isDirectory()) {
                     loopFor(listFile,configClass, beanDefinitionMap);
 
@@ -78,10 +82,27 @@ public class ScanBeanUtils {
             Component component = loadClass.getAnnotation(Component.class);
             beanName = component.value();
 
-            // 是否懒加载
+            // 是否是懒加载
             boolean lazy = false;
             // bean的作用域
             String scope = "singleton";
+            // 类上使用了@Scope注解
+            if (loadClass.isAnnotationPresent(Scope.class)) {
+                // 获取@Scope注解
+                Scope annotation = loadClass.getAnnotation(Scope.class);
+
+                // 单例
+                if (CreateBeanUtils.isSingleton(annotation.value())) {
+                    lazy = loadClass.isAnnotationPresent(Lazy.class);
+                } else {
+                    // 非单例
+                    scope = annotation.value();
+                }
+            } else {
+                // 类上没有使用@Scope注解，默认是单例的
+                lazy = loadClass.isAnnotationPresent(Lazy.class);
+            }
+
 
             // 保存bean的定义
             BeanDefinition beanDefinition = new BeanDefinition();

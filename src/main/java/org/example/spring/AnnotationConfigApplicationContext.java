@@ -45,6 +45,11 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
         }
     }
 
+    /**
+     * 通过beanName查找
+     * @param beanName bean名字
+     * @return 返回bean实例
+     */
     @Override
     public Object getBean(String beanName) {
         if (!beanDefinitionMap.containsKey(beanName)) {
@@ -56,7 +61,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
 
     /**
      * 使用默认构造器
-     * @param type
+     * @param type bean类型
      * @return T
      */
     @Override
@@ -90,6 +95,12 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
         }
     }
 
+    /**
+     * 通过类型和beanName获取对应的bean对象
+     * @param beanName bean名字
+     * @param type bean的类型
+     * @return 需要的bean类型
+     */
     @Override
     public T getBean(String beanName, Class<T> type) {
         if (type == null) {
@@ -127,7 +138,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
 
             return singletonObjects.get(beanName);
         }
-
+        // 创建bean对象
         return CreateBeanUtils.createBean(beanDefinition);
     }
 }

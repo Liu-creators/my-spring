@@ -18,10 +18,10 @@ public class CreateBeanUtils {
      */
     public static Object createBean(BeanDefinition beanDefinition) {
         Object bean = null;
-        Class beanType = beanDefinition.getType();
+        Class<?> beanType = beanDefinition.getType();
 
         // 获取所有构造方法
-        Constructor[] constructors = beanType.getConstructors();
+        Constructor<?>[] constructors = beanType.getConstructors();
 
         try {
             /*
@@ -37,11 +37,11 @@ public class CreateBeanUtils {
              */
             if (isEmpty(constructors)) { // 注意：这个分支永远不会执行，可以删除，但是为了方便理解代码，在此保留
                 // 无参构造方法
-                Constructor constructor = beanType.getConstructor();
+                Constructor<?> constructor = beanType.getConstructor();
 
                 bean = constructor.newInstance();
             } else if (constructors.length == 1) {
-                Constructor constructor = constructors[0];
+                Constructor<?> constructor = constructors[0];
                 // 得到构造方法参数个数
                 int parameterCount = constructor.getParameterCount();
 
@@ -57,7 +57,7 @@ public class CreateBeanUtils {
             } else {
                 boolean success = false;
 
-                for (Constructor constructor : constructors) {
+                for (Constructor<?> constructor : constructors) {
                     if (constructor.getParameterCount() == 0) {
                         bean = constructor.newInstance();
                         success = true;
