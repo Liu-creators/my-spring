@@ -1,17 +1,19 @@
 package org.example.spring.utils;
 
 import org.example.spring.BeanDefinition;
+import org.example.spring.BeanPostProcessor;
 import org.example.spring.InitializingBean;
 import org.example.spring.annotation.Autowired;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.Map;
 
 /**
  * -03/29-0:24
- * -
+ * -创建Bean的工具类
  */
 public class CreateBeanUtils {
 
@@ -20,7 +22,7 @@ public class CreateBeanUtils {
      * @param beanDefinition bean的定义
      * @return Object 创建好的bean对象
      */
-    public static <T> Object createBean(BeanDefinition beanDefinition, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects) {
+    public static <T> Object createBean(BeanDefinition beanDefinition, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) {
         Object bean = null;
         Class<?> beanType = beanDefinition.getType();
 
@@ -39,7 +41,9 @@ public class CreateBeanUtils {
              *     - 提供了无参构造方法：调用无参构造方法实例化
              *     - 没有提供无参构造方法：推断失败，抛出异常
              */
-            if (isEmpty(constructors)) { // 注意：这个分支永远不会执行，可以删除，但是为了方便理解代码，在此保留
+            // 注意：这个分支永远不会执行，可以删除，但是为了方便理解代码，在此保留
+
+            if (isEmpty(constructors)) {
                 // 无参构造方法
                 Constructor<?> constructor = beanType.getConstructor();
 
@@ -84,24 +88,38 @@ public class CreateBeanUtils {
                 if (field.isAnnotationPresent(Autowired.class)) {
                     // 获取bean
                     // 通过bean名称获取bean
-                    Object autowiredBean = GetBeanUtils.getBean(field.getName(), beanDefinitionMap, singletonObjects);
+                    Object autowiredBean = GetBeanUtils.getBean(field.getName(), beanDefinitionMap, singletonObjects,list);
 
                     if (autowiredBean == null) {
                         // 获取字段类型
                         Class<?> type = field.getType();
 
-                        autowiredBean = GetBeanUtils.getBean((Class<T>) type, beanDefinitionMap, singletonObjects);
+                        autowiredBean = GetBeanUtils.getBean((Class<T>) type, beanDefinitionMap, singletonObjects, list);
                     }
                     // 设置到@Autowired注入的属性中
                     field.setAccessible(true);
                     field.set(bean, autowiredBean);
                 }
             }
+            /**
+             * 初始化前
+             */
+            String beanName = GetBeanUtils.getBeanName(beanDefinition.getType());
+            if (!list.isEmpty()) {
+                for (BeanPostProcessor beanPostProcessor : list) {
+                    bean = beanPostProcessor.postProcessBeforeInitialization(bean, beanName);
+                }
+            }
+
             // 调用 InitializingBean的afterPropertiesSet() 方法
             if (bean instanceof InitializingBean) {
-                // Method afterPropertiestSet = beanType.getDeclaredMethod("afterPropertiesSet");
-                // afterPropertiesSet.invoke(bean);
                 ((InitializingBean) bean).afterPropertiesSet();
+            }
+
+            if (!list.isEmpty()) {
+                for (BeanPostProcessor beanPostProcessor : list) {
+                    bean = beanPostProcessor.postProcessAfterInitialization(bean, beanName);
+                }
             }
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();

@@ -4,7 +4,9 @@ import org.example.spring.utils.CreateBeanUtils;
 import org.example.spring.utils.GetBeanUtils;
 import org.example.spring.utils.ScanBeanUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,17 +27,22 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      */
     public final Class<T> configClass;
 
+    /**
+     * 保存所有BeanPostProcessor接口实现类的集合
+     */
+    List<BeanPostProcessor> list = new ArrayList<>();
+
     public AnnotationConfigApplicationContext(Class<T> configClass) throws ClassNotFoundException {
         this.configClass = configClass;
         // 扫描组件
-        ScanBeanUtils.scan(configClass,configClass, beanDefinitionMap);
+        ScanBeanUtils.scan(configClass, beanDefinitionMap, singletonObjects, list);
 
         // 把组件中非懒加载的单例bean保存到单例池
         for (Map.Entry<String, BeanDefinition> entry : beanDefinitionMap.entrySet()) {
             BeanDefinition beanDefinition = entry.getValue();
-
+            // 如果是单例并且不是懒加载就创建Bean实例，并加入单例对象池中
             if(CreateBeanUtils.isSingleton(beanDefinition.getScope()) && !beanDefinition.isLazy()) {
-                Object bean = CreateBeanUtils.createBean(beanDefinition, beanDefinitionMap, singletonObjects);
+                Object bean = CreateBeanUtils.createBean(beanDefinition, beanDefinitionMap, singletonObjects, list);
                 String beanName = entry.getKey();
 
                 singletonObjects.put(beanName, bean);
@@ -50,7 +57,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      */
     @Override
     public Object getBean(String beanName) {
-        return GetBeanUtils.getBean(beanName,beanDefinitionMap,singletonObjects);
+        return GetBeanUtils.getBean(beanName,beanDefinitionMap,singletonObjects, list);
     }
 
     /**
@@ -60,7 +67,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      */
     @Override
     public T getBean(Class<T> type) {
-        return GetBeanUtils.getBean(type, beanDefinitionMap, singletonObjects);
+        return GetBeanUtils.getBean(type, beanDefinitionMap, singletonObjects, list);
     }
 
     /**
@@ -71,6 +78,6 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      */
     @Override
     public T getBean(String beanName, Class<T> type) {
-        return GetBeanUtils.getBean(beanName,type, beanDefinitionMap, singletonObjects);
+        return GetBeanUtils.getBean(beanName,type, beanDefinitionMap, singletonObjects,list);
     }
 }

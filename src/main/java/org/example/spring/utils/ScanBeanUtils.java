@@ -1,11 +1,13 @@
 package org.example.spring.utils;
 
 import org.example.spring.BeanDefinition;
+import org.example.spring.BeanPostProcessor;
 import org.example.spring.annotation.*;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -20,7 +22,7 @@ public class ScanBeanUtils {
      * @param clazz 配置类的类对象
      * @throws ClassNotFoundException 类找不到
      */
-    public static <T> void scan(Class<T> clazz, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap) throws ClassNotFoundException {
+    public static <T> void scan(Class<T> clazz, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) throws ClassNotFoundException {
         // 如果类上使用了@Component注解
         if (clazz.isAnnotationPresent(ComponentScan.class)) {
             ComponentScan componentScan = clazz.getAnnotation(ComponentScan.class);
@@ -34,7 +36,7 @@ public class ScanBeanUtils {
                 assert resource != null;
                 File file = new File(resource.getFile());
 
-                loopFor(file, configClass, beanDefinitionMap);
+                loopFor(file, clazz, beanDefinitionMap, singletonObjects,list);
             }
         }
     }
@@ -44,18 +46,18 @@ public class ScanBeanUtils {
      * @param file 文件/文件夹
      * @throws ClassNotFoundException 类找不到
      */
-    private static <T> void loopFor(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap) throws ClassNotFoundException {
+    private static <T> void loopFor(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) throws ClassNotFoundException {
         if (file.isDirectory()) {
             for (File listFile : Objects.requireNonNull(file.listFiles())) {
                 if (listFile.isDirectory()) {
-                    loopFor(listFile,configClass, beanDefinitionMap);
+                    loopFor(listFile,configClass, beanDefinitionMap, singletonObjects, list);
 
                     continue;
                 }
-                toBeanDefinitionMap(listFile, configClass, beanDefinitionMap);
+                toBeanDefinitionMap(listFile, configClass, beanDefinitionMap, singletonObjects, list);
             }
         } else if (file.isFile()) {
-            toBeanDefinitionMap(file, configClass, beanDefinitionMap);
+            toBeanDefinitionMap(file, configClass, beanDefinitionMap, singletonObjects, list);
         }
     }
     /**
@@ -63,7 +65,7 @@ public class ScanBeanUtils {
      * @param file 解析的class文件
      * @throws ClassNotFoundException 类找不到
      */
-    private static <T> void toBeanDefinitionMap(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap) throws ClassNotFoundException {
+    private static <T> void toBeanDefinitionMap(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) throws ClassNotFoundException {
         // 获取类的绝对路径
         String absolutePath = file.getAbsolutePath();
         // 处理得到类的全限定名
@@ -73,7 +75,7 @@ public class ScanBeanUtils {
         // 通过类加载器加载
         Class<?> loadClass = configClass.getClassLoader().loadClass(absolutePath);
 
-        String beanName;
+        String beanName = "";
         // 是否是懒加载
         boolean lazy = false;
         // bean的作用域
@@ -86,7 +88,7 @@ public class ScanBeanUtils {
             Component component = loadClass.getAnnotation(Component.class);
             beanName = component.value();
             if ("".equals(beanName)) {
-                beanName = getBeanName(loadClass);
+                beanName = GetBeanUtils.getBeanName(loadClass);
             }
 
             // 类上使用了@Scope注解
@@ -105,12 +107,9 @@ public class ScanBeanUtils {
                 // 类上没有使用@Scope注解，默认是单例的
                 lazy = loadClass.isAnnotationPresent(Lazy.class);
             }
-
+            // bean类型
             beanDefinition.setType(loadClass);
-            beanDefinition.setLazy(lazy);
-            beanDefinition.setScope(scope);
-            // 加入map中
-            beanDefinitionMap.put(beanName, beanDefinition);
+
         } else if (loadClass.isAnnotationPresent(Configuration.class)) {
             Method[] methods = loadClass.getDeclaredMethods();
             for (Method method : methods) {
@@ -122,35 +121,20 @@ public class ScanBeanUtils {
                     if ("".equals(beanName)) {
                         beanName = method.getName();
                     }
+                    // bean类型
                     beanDefinition.setType(method.getReturnType());
-                    beanDefinition.setLazy(lazy);
-                    beanDefinition.setScope(scope);
-
-                    beanDefinitionMap.put(beanName, beanDefinition);
                 }
             }
         }
-    }
-
-    /**
-     * 根据类对象获取beanName
-     * @param clazz 类对象
-     * @return beanName
-     */
-    private static String getBeanName(Class<?> clazz) {
-        String beanName = clazz.getSimpleName();
-
-        // 判断是否以双大写字母开头（查找连续的两个大写字母，并在其中间添加_）
-        String className = beanName.replaceAll("([A-Z])([A-Z])", "$1_$2");
-
-        // 正常的大驼峰命名：bean名称为类名首字母大写
-        if (className.indexOf("_") != 1) {
-            beanName = beanName.substring(0, 1).toLowerCase().concat(beanName.substring(1));
-        } else { // 否则，bean名称为类名
-            beanName = beanName;
+        if (!"".equals(beanName)) {
+            beanDefinition.setLazy(lazy);
+            beanDefinition.setScope(scope);
+            // BeanPostProcessor接口的实现类保存到list中
+            if (BeanPostProcessor.class.isAssignableFrom(loadClass)) {
+                list.add((BeanPostProcessor) CreateBeanUtils.createBean(beanDefinition, beanDefinitionMap,singletonObjects, list));
+            }
+            beanDefinitionMap.put(beanName, beanDefinition);
         }
-
-        return beanName;
     }
 
 }
