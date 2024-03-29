@@ -81,6 +81,9 @@ public class ScanBeanUtils {
             // 获取@Component注解上配置的组件名
             Component component = loadClass.getAnnotation(Component.class);
             beanName = component.value();
+            if ("".equals(beanName)) {
+                beanName = getBeanName(loadClass);
+            }
 
             // 是否是懒加载
             boolean lazy = false;
@@ -106,12 +109,33 @@ public class ScanBeanUtils {
 
             // 保存bean的定义
             BeanDefinition beanDefinition = new BeanDefinition();
-
             beanDefinition.setType(loadClass);
             beanDefinition.setLazy(lazy);
             beanDefinition.setScope(scope);
-
+            // 加入map中
             beanDefinitionMap.put(beanName, beanDefinition);
         }
     }
+
+    /**
+     * 根据类对象获取beanName
+     * @param clazz 类对象
+     * @return beanName
+     */
+    private static String getBeanName(Class<?> clazz) {
+        String beanName = clazz.getSimpleName();
+
+        // 判断是否以双大写字母开头（查找连续的两个大写字母，并在其中间添加_）
+        String className = beanName.replaceAll("([A-Z])([A-Z])", "$1_$2");
+
+        // 正常的大驼峰命名：bean名称为类名首字母大写
+        if (className.indexOf("_") != 1) {
+            beanName = beanName.substring(0, 1).toLowerCase().concat(beanName.substring(1));
+        } else { // 否则，bean名称为类名
+            beanName = beanName;
+        }
+
+        return beanName;
+    }
+
 }
