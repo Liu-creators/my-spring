@@ -1,12 +1,10 @@
 package org.example.spring.utils;
 
 import org.example.spring.BeanDefinition;
-import org.example.spring.annotation.Component;
-import org.example.spring.annotation.ComponentScan;
-import org.example.spring.annotation.Lazy;
-import org.example.spring.annotation.Scope;
+import org.example.spring.annotation.*;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Map;
 import java.util.Objects;
@@ -76,6 +74,12 @@ public class ScanBeanUtils {
         Class<?> loadClass = configClass.getClassLoader().loadClass(absolutePath);
 
         String beanName;
+        // 是否是懒加载
+        boolean lazy = false;
+        // bean的作用域
+        String scope = "singleton";
+        // 保存bean的定义
+        BeanDefinition beanDefinition = new BeanDefinition();
 
         if (loadClass.isAnnotationPresent(Component.class)) {
             // 获取@Component注解上配置的组件名
@@ -85,10 +89,6 @@ public class ScanBeanUtils {
                 beanName = getBeanName(loadClass);
             }
 
-            // 是否是懒加载
-            boolean lazy = false;
-            // bean的作用域
-            String scope = "singleton";
             // 类上使用了@Scope注解
             if (loadClass.isAnnotationPresent(Scope.class)) {
                 // 获取@Scope注解
@@ -106,14 +106,29 @@ public class ScanBeanUtils {
                 lazy = loadClass.isAnnotationPresent(Lazy.class);
             }
 
-
-            // 保存bean的定义
-            BeanDefinition beanDefinition = new BeanDefinition();
             beanDefinition.setType(loadClass);
             beanDefinition.setLazy(lazy);
             beanDefinition.setScope(scope);
             // 加入map中
             beanDefinitionMap.put(beanName, beanDefinition);
+        } else if (loadClass.isAnnotationPresent(Configuration.class)) {
+            Method[] methods = loadClass.getDeclaredMethods();
+            for (Method method : methods) {
+                if (method.isAnnotationPresent(Bean.class)) {
+                    Bean annotation = method.getAnnotation(Bean.class);
+                    beanName = annotation.value();
+                    // 是否懒加载
+                    lazy = method.isAnnotationPresent(Lazy.class);
+                    if ("".equals(beanName)) {
+                        beanName = method.getName();
+                    }
+                    beanDefinition.setType(method.getReturnType());
+                    beanDefinition.setLazy(lazy);
+                    beanDefinition.setScope(scope);
+
+                    beanDefinitionMap.put(beanName, beanDefinition);
+                }
+            }
         }
     }
 
