@@ -1,6 +1,7 @@
 package org.example.spring.utils;
 
 import org.example.spring.BeanDefinition;
+import org.example.spring.InitializingBean;
 import org.example.spring.annotation.Autowired;
 
 import java.lang.reflect.Constructor;
@@ -95,6 +96,12 @@ public class CreateBeanUtils {
                     field.setAccessible(true);
                     field.set(bean, autowiredBean);
                 }
+            }
+            // 调用 InitializingBean的afterPropertiesSet() 方法
+            if (bean instanceof InitializingBean) {
+                // Method afterPropertiestSet = beanType.getDeclaredMethod("afterPropertiesSet");
+                // afterPropertiesSet.invoke(bean);
+                ((InitializingBean) bean).afterPropertiesSet();
             }
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
