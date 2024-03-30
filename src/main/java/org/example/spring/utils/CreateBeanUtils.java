@@ -97,8 +97,8 @@ public class CreateBeanUtils {
                         autowiredBean = GetBeanUtils.getBean((Class<T>) type, beanDefinitionMap, singletonObjects, list);
                     }
                     // 设置到@Autowired注入的属性中
-                    field.setAccessible(true);
-                    field.set(bean, autowiredBean);
+                    field.setAccessible(true);  // 打开字段的访问权限
+                    field.set(bean, autowiredBean); // 将bean对象中的field字段设置为autowiredBean
                 }
             }
             /**
@@ -126,7 +126,6 @@ public class CreateBeanUtils {
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
-
         return bean;
     }
 

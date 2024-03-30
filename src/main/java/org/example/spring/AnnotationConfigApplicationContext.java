@@ -28,7 +28,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
     public final Class<T> configClass;
 
     /**
-     * 保存所有BeanPostProcessor接口实现类的集合
+     * List<BeanPostProcessor> listList<BeanPostProcessor> list
      */
     List<BeanPostProcessor> list = new ArrayList<>();
 
