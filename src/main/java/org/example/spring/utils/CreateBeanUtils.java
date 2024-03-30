@@ -62,10 +62,10 @@ public class CreateBeanUtils {
 
                     bean = constructor.newInstance(array);
                 }
-            } else {
+            } else { // 多个构造方法
                 boolean success = false;
-
                 for (Constructor<?> constructor : constructors) {
+                    // 无参构造方法
                     if (constructor.getParameterCount() == 0) {
                         bean = constructor.newInstance();
                         success = true;
@@ -115,7 +115,9 @@ public class CreateBeanUtils {
             if (bean instanceof InitializingBean) {
                 ((InitializingBean) bean).afterPropertiesSet();
             }
-
+            /**
+             * 初始化后
+             */
             if (!list.isEmpty()) {
                 for (BeanPostProcessor beanPostProcessor : list) {
                     bean = beanPostProcessor.postProcessAfterInitialization(bean, beanName);
