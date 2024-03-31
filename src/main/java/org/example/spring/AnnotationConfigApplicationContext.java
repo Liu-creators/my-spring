@@ -1,51 +1,35 @@
 package org.example.spring;
 
+import org.example.spring.model.ResourceModel;
 import org.example.spring.utils.CreateBeanUtils;
 import org.example.spring.utils.GetBeanUtils;
 import org.example.spring.utils.ScanBeanUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * -03/28-23:30
  * -ApplicationContext接口的实现类, Spring容器
  */
-public class AnnotationConfigApplicationContext<T> implements ApplicationContext<T>{
+public class AnnotationConfigApplicationContext implements ApplicationContext{
 
-    private final Map<String, BeanDefinition> beanDefinitionMap = new HashMap<>();
+    private final ResourceModel resourceModel;
 
-    /**
-     * 单例对象池
-     */
-    private final Map<String, Object> singletonObjects = new HashMap<>();
-
-    /**
-     * 创建Spring容器时指定的配置类
-     */
-    public final Class<T> configClass;
-
-    /**
-     * List<BeanPostProcessor> listList<BeanPostProcessor> list
-     */
-    public final  List<BeanPostProcessor> list = new ArrayList<>();
-
-    public AnnotationConfigApplicationContext(Class<T> configClass) throws ClassNotFoundException {
-        this.configClass = configClass;
+    public <T> AnnotationConfigApplicationContext(Class<T> configClass) throws ClassNotFoundException {
+        resourceModel = new ResourceModel();
+        resourceModel.configClass = configClass;
         // 扫描组件
-        ScanBeanUtils.scan(configClass, beanDefinitionMap, singletonObjects, list);
+        ScanBeanUtils.scan(configClass, resourceModel);
 
         // 把组件中非懒加载的单例bean保存到单例池
-        for (Map.Entry<String, BeanDefinition> entry : beanDefinitionMap.entrySet()) {
+        for (Map.Entry<String, BeanDefinition> entry : resourceModel.beanDefinitionMap.entrySet()) {
             BeanDefinition beanDefinition = entry.getValue();
             // 如果是单例并且不是懒加载就创建Bean实例，并加入单例对象池中
             if(CreateBeanUtils.isSingleton(beanDefinition.getScope()) && !beanDefinition.isLazy()) {
-                Object bean = CreateBeanUtils.createBean(beanDefinition, beanDefinitionMap, singletonObjects, list);
+                Object bean = CreateBeanUtils.createBean(beanDefinition, resourceModel);
                 String beanName = entry.getKey();
 
-                singletonObjects.put(beanName, bean);
+                resourceModel.singletonObjects.put(beanName, bean);
             }
         }
     }
@@ -57,7 +41,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      */
     @Override
     public Object getBean(String beanName) {
-        return GetBeanUtils.getBean(beanName,beanDefinitionMap,singletonObjects, list);
+        return GetBeanUtils.getBean(beanName,resourceModel);
     }
 
     /**
@@ -66,8 +50,8 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      * @return T
      */
     @Override
-    public T getBean(Class<T> type) {
-        return GetBeanUtils.getBean(type, beanDefinitionMap, singletonObjects, list);
+    public <T> T getBean(Class<T> type) {
+        return GetBeanUtils.getBean(type, resourceModel);
     }
 
     /**
@@ -77,7 +61,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
      * @return 需要的bean类型
      */
     @Override
-    public T getBean(String beanName, Class<T> type) {
-        return GetBeanUtils.getBean(beanName,type, beanDefinitionMap, singletonObjects,list);
+    public <T> T getBean(String beanName, Class<T> type) {
+        return GetBeanUtils.getBean(beanName,type, resourceModel);
     }
 }

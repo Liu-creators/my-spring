@@ -1,12 +1,11 @@
 package org.example.spring.utils;
 
 import org.example.spring.BeanDefinition;
-import org.example.spring.BeanPostProcessor;
 import org.example.spring.exception.NoSuchBeanException;
 import org.example.spring.exception.TooMuchBeanException;
+import org.example.spring.model.ResourceModel;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,12 +20,12 @@ public class GetBeanUtils {
      * @param beanName bean名字
      * @return 返回bean实例
      */
-    public static Object getBean(String beanName, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) {
-        if (!beanDefinitionMap.containsKey(beanName)) {
+    public static Object getBean(String beanName, ResourceModel resourceModel) {
+        if (!resourceModel.beanDefinitionMap.containsKey(beanName)) {
             return null;
         }
 
-        return getBean(beanName, beanDefinitionMap.get(beanName), beanDefinitionMap, singletonObjects, list);
+        return getBean(beanName, resourceModel.beanDefinitionMap.get(beanName), resourceModel);
     }
 
     /**
@@ -34,7 +33,7 @@ public class GetBeanUtils {
      * @param type bean类型
      * @return T
      */
-    public static <T> T getBean(Class<T> type,Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) {
+    public static <T> T getBean(Class<T> type,ResourceModel resourceModel) {
         if (type == null) {
             throw new IllegalStateException("bean类型不能为空！");
         }
@@ -44,7 +43,7 @@ public class GetBeanUtils {
         // 保存同一类型的bean
         Map<String, BeanDefinition> objectMap = new HashMap<>();
 
-        for (Map.Entry<String, BeanDefinition> entry : beanDefinitionMap.entrySet()) {
+        for (Map.Entry<String, BeanDefinition> entry : resourceModel.beanDefinitionMap.entrySet()) {
             BeanDefinition beanDefinition = entry.getValue();
             Class<?> beanType = beanDefinition.getType();
             String beanName = entry.getKey();
@@ -60,7 +59,7 @@ public class GetBeanUtils {
         } else if (count.get() > 1) {
             throw new TooMuchBeanException();
         } else {
-            return (T) getBean((String) objectMap.keySet().toArray()[0], (BeanDefinition) objectMap.values().toArray()[0], beanDefinitionMap, singletonObjects, list);
+            return (T) getBean((String) objectMap.keySet().toArray()[0], (BeanDefinition) objectMap.values().toArray()[0], resourceModel);
         }
     }
 
@@ -70,14 +69,14 @@ public class GetBeanUtils {
      * @param type bean的类型
      * @return 需要的bean类型
      */
-    public static <T> T getBean(String beanName, Class<T> type, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) {
+    public static <T> T getBean(String beanName, Class<T> type, ResourceModel resourceModel) {
         if (type == null) {
             throw new IllegalStateException("bean 类型不能为空！ ");
         }
-        if (beanDefinitionMap.containsKey(beanName)) {
-            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+        if (resourceModel.beanDefinitionMap.containsKey(beanName)) {
+            BeanDefinition beanDefinition = resourceModel.beanDefinitionMap.get(beanName);
             if (type.equals(beanDefinition.getType())) {
-                return (T) getBean(beanName, beanDefinition, beanDefinitionMap, singletonObjects, list);
+                return (T) getBean(beanName, beanDefinition, resourceModel);
             }
         }
         throw new NoSuchBeanException();
@@ -90,24 +89,24 @@ public class GetBeanUtils {
      * @param beanDefinition BeanDefinition
      * @return Object 符合条件的bean对象
      */
-    private static Object getBean(String beanName, BeanDefinition beanDefinition,Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) {
+    private static Object getBean(String beanName, BeanDefinition beanDefinition,ResourceModel resourceModel) {
         String scope = beanDefinition.getScope();
 
         // bean的作用域是单例
         if (CreateBeanUtils.isSingleton(scope)) {
-            Object object = singletonObjects.get(beanName);
+            Object object = resourceModel.singletonObjects.get(beanName);
 
             // 懒加载的单例bean
             if (object == null) {
-                Object bean = CreateBeanUtils.createBean(beanDefinition,beanDefinitionMap, singletonObjects, list);
+                Object bean = CreateBeanUtils.createBean(beanDefinition,resourceModel);
 
-                singletonObjects.put(beanName, bean);
+                resourceModel.singletonObjects.put(beanName, bean);
             }
 
-            return singletonObjects.get(beanName);
+            return resourceModel.singletonObjects.get(beanName);
         }
         // 创建bean对象
-        return CreateBeanUtils.createBean(beanDefinition, beanDefinitionMap, singletonObjects, list);
+        return CreateBeanUtils.createBean(beanDefinition, resourceModel);
     }
 
     /**
@@ -124,10 +123,7 @@ public class GetBeanUtils {
         // 正常的大驼峰命名：bean名称为类名首字母大写
         if (className.indexOf("_") != 1) {
             beanName = beanName.substring(0, 1).toLowerCase().concat(beanName.substring(1));
-        } else { // 否则，bean名称为类名
-            beanName = beanName;
-        }
-
+        } // 否则，bean名称为类名
         return beanName;
     }
 }

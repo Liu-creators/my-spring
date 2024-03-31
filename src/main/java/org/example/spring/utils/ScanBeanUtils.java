@@ -3,12 +3,11 @@ package org.example.spring.utils;
 import org.example.spring.BeanDefinition;
 import org.example.spring.BeanPostProcessor;
 import org.example.spring.annotation.*;
+import org.example.spring.model.ResourceModel;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -22,7 +21,7 @@ public class ScanBeanUtils {
      * @param clazz 配置类的类对象
      * @throws ClassNotFoundException 类找不到
      */
-    public static <T> void scan(Class<T> clazz, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) throws ClassNotFoundException {
+    public static <T> void scan(Class<T> clazz, ResourceModel resourceModel) throws ClassNotFoundException {
         // 如果类上使用了@ComponentScan注解
         if (clazz.isAnnotationPresent(ComponentScan.class)) {
             ComponentScan componentScan = clazz.getAnnotation(ComponentScan.class);
@@ -36,7 +35,7 @@ public class ScanBeanUtils {
                 assert resource != null;
                 File file = new File(resource.getFile());
 
-                loopFor(file, clazz, beanDefinitionMap, singletonObjects,list);
+                loopFor(file, clazz, resourceModel);
             }
         }
     }
@@ -46,17 +45,17 @@ public class ScanBeanUtils {
      * @param file 文件/文件夹
      * @throws ClassNotFoundException 类找不到
      */
-    private static <T> void loopFor(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) throws ClassNotFoundException {
+    private static <T> void loopFor(File file, Class<T> configClass, ResourceModel resourceModel) throws ClassNotFoundException {
         if (file.isDirectory()) {
             for (File listFile : Objects.requireNonNull(file.listFiles())) {
                 if (listFile.isDirectory()) {
-                    loopFor(listFile,configClass, beanDefinitionMap, singletonObjects, list);
+                    loopFor(listFile,configClass, resourceModel);
                     continue;
                 }
-                toBeanDefinitionMap(listFile, configClass, beanDefinitionMap, singletonObjects, list);
+                toBeanDefinitionMap(listFile, configClass, resourceModel);
             }
         } else if (file.isFile()) {
-            toBeanDefinitionMap(file, configClass, beanDefinitionMap, singletonObjects, list);
+            toBeanDefinitionMap(file, configClass, resourceModel);
         }
     }
     /**
@@ -64,7 +63,7 @@ public class ScanBeanUtils {
      * @param file 解析的class文件
      * @throws ClassNotFoundException 类找不到
      */
-    private static <T> void toBeanDefinitionMap(File file, Class<T> configClass, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) throws ClassNotFoundException {
+    private static <T> void toBeanDefinitionMap(File file, Class<T> configClass, ResourceModel resourceModel) throws ClassNotFoundException {
         // 获取类的绝对路径
         String absolutePath = file.getAbsolutePath();
         // 处理得到类的全限定名
@@ -112,9 +111,9 @@ public class ScanBeanUtils {
             beanDefinition.setScope(scope);
             // BeanPostProcessor接口的实现类保存到list中
             if (BeanPostProcessor.class.isAssignableFrom(loadClass)) {
-                list.add((BeanPostProcessor) CreateBeanUtils.createBean(beanDefinition, beanDefinitionMap,singletonObjects, list));
+                resourceModel.list.add((BeanPostProcessor) CreateBeanUtils.createBean(beanDefinition, resourceModel));
             }
-            beanDefinitionMap.put(beanName, beanDefinition);
+            resourceModel.beanDefinitionMap.put(beanName, beanDefinition);
         } else if (loadClass.isAnnotationPresent(Configuration.class)) {
             Method[] methods = loadClass.getDeclaredMethods();
             for (Method method : methods) {
@@ -132,7 +131,7 @@ public class ScanBeanUtils {
                     beanDefinition.setType(method.getReturnType());
                     beanDefinition.setLazy(lazy);
                     beanDefinition.setScope(scope);
-                    beanDefinitionMap.put(beanName, beanDefinition);
+                    resourceModel.beanDefinitionMap.put(beanName, beanDefinition);
                 }
             }
         }

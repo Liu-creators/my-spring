@@ -7,9 +7,9 @@ package org.example.spring;
 public interface BeanPostProcessor {
     /**
      * bean初始化前
-     * @param bean
-     * @param beanName
-     * @return
+     * @param bean bean对象
+     * @param beanName bean名称
+     * @return bean对象
      */
     default Object postProcessBeforeInitialization(Object bean, String beanName) {
         return bean;
@@ -17,9 +17,9 @@ public interface BeanPostProcessor {
 
     /**
      * bean初始化后
-     * @param bean
-     * @param beanName
-     * @return
+     * @param bean bean对象
+     * @param beanName bean名称
+     * @return bean对象
      */
     default Object postProcessAfterInitialization(Object bean, String beanName) {
         return bean;

@@ -4,12 +4,11 @@ import org.example.spring.BeanDefinition;
 import org.example.spring.BeanPostProcessor;
 import org.example.spring.InitializingBean;
 import org.example.spring.annotation.Autowired;
+import org.example.spring.model.ResourceModel;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * -03/29-0:24
@@ -22,7 +21,7 @@ public class CreateBeanUtils {
      * @param beanDefinition bean的定义
      * @return Object 创建好的bean对象
      */
-    public static <T> Object createBean(BeanDefinition beanDefinition, Map<String, BeanDefinition> beanDefinitionMap, Map<String, Object> singletonObjects, List<BeanPostProcessor> list) {
+    public static <T> Object createBean(BeanDefinition beanDefinition, ResourceModel resourceModel) {
         Object bean = null;
         Class<?> beanType = beanDefinition.getType();
 
@@ -88,25 +87,26 @@ public class CreateBeanUtils {
                 if (field.isAnnotationPresent(Autowired.class)) {
                     // 获取bean
                     // 通过bean名称获取bean
-                    Object autowiredBean = GetBeanUtils.getBean(field.getName(), beanDefinitionMap, singletonObjects,list);
-
-                    if (autowiredBean == null) {
+                    Object autowiredBean = GetBeanUtils.getBean(field.getName(), resourceModel);
+                    Autowired autowired = field.getAnnotation(Autowired.class);
+                    boolean required = autowired.required();
+                    if (autowiredBean == null && required) {
                         // 获取字段类型
                         Class<?> type = field.getType();
 
-                        autowiredBean = GetBeanUtils.getBean((Class<T>) type, beanDefinitionMap, singletonObjects, list);
+                        autowiredBean = GetBeanUtils.getBean((Class<T>) type, resourceModel);
                     }
                     // 设置到@Autowired注入的属性中
                     field.setAccessible(true);  // 打开字段的访问权限
                     field.set(bean, autowiredBean); // 将bean对象中的field字段设置为autowiredBean
                 }
             }
-            /**
+            /*
              * 初始化前
              */
             String beanName = GetBeanUtils.getBeanName(beanDefinition.getType());
-            if (!list.isEmpty()) {
-                for (BeanPostProcessor beanPostProcessor : list) {
+            if (!resourceModel.list.isEmpty()) {
+                for (BeanPostProcessor beanPostProcessor : resourceModel.list) {
                     bean = beanPostProcessor.postProcessBeforeInitialization(bean, beanName);
                 }
             }
@@ -115,16 +115,16 @@ public class CreateBeanUtils {
             if (bean instanceof InitializingBean) {
                 ((InitializingBean) bean).afterPropertiesSet();
             }
-            /**
+            /*
              * 初始化后
              */
-            if (!list.isEmpty()) {
-                for (BeanPostProcessor beanPostProcessor : list) {
+            if (!resourceModel.list.isEmpty()) {
+                for (BeanPostProcessor beanPostProcessor : resourceModel.list) {
                     bean = beanPostProcessor.postProcessAfterInitialization(bean, beanName);
                 }
             }
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            e.printStackTrace();
+            throw new RuntimeException("createBean-创建bean对象异常: ", e);
         }
         return bean;
     }
