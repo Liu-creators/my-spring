@@ -41,7 +41,7 @@ public class ScanBeanUtils {
     }
 
     /**
-     * 递归遍历指定文件/文件夹
+     * 递归遍历指定文件/文件夹 (是按字母顺序遍历的)
      * @param file 文件/文件夹
      * @throws ClassNotFoundException 类找不到
      */

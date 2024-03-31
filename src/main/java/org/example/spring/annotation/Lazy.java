@@ -12,5 +12,4 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE,ElementType.METHOD, ElementType.FIELD}) // 接口、类、方法和字段
 @Retention(RetentionPolicy.RUNTIME) // 运行时加载
 public @interface Lazy {
-
 }
