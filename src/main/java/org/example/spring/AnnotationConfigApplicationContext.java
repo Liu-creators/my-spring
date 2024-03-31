@@ -30,7 +30,7 @@ public class AnnotationConfigApplicationContext<T> implements ApplicationContext
     /**
      * List<BeanPostProcessor> listList<BeanPostProcessor> list
      */
-    List<BeanPostProcessor> list = new ArrayList<>();
+    public final  List<BeanPostProcessor> list = new ArrayList<>();
 
     public AnnotationConfigApplicationContext(Class<T> configClass) throws ClassNotFoundException {
         this.configClass = configClass;
