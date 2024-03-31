@@ -78,7 +78,6 @@ public class ScanBeanUtils {
         boolean lazy = false;
         // bean的作用域
         String scope = "singleton";
-
         if (loadClass.isAnnotationPresent(Component.class)) {
             // 获取@Component注解上配置的组件名
             Component component = loadClass.getAnnotation(Component.class);
